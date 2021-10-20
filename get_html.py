@@ -1,6 +1,7 @@
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
+import time
 
 #num = 71
 
@@ -11,13 +12,18 @@ url_postfix = "/bio"
 
 print(f"Total, {len(names.index)}")
 
+start = time.time()
+total_time = 0
+pcent = 0
 err_log = open("errlog", 'w+')
+size = len(names.index)
+inc = int(size * 0.01)
 
-for i in range(len(names.index)):
-#for i in range(20):
+for i in range(size):
 
 	nameID = names['imdb_name_id'][i]
 	url = url_prefix + nameID + url_postfix
+
 	try:
 		src = requests.get(url).text
 		soup = BeautifulSoup(src, 'lxml')
@@ -27,17 +33,16 @@ for i in range(len(names.index)):
 		fout.write(str(fam))
 		fout.close()
 
-		if i % 100 == 0:
-			print(i)
+		if i % inc == 0:
+			end = time.time()
+			dt = end - start
+			total_time += dt
+			pcent = int(100 * i / size)
+			print(f"{pcent}% -- {i}/{size} -- Elapsed: {total_time/60:.3f} mins -- Delta: {dt/60:.3f} mins -- Remaining: {((100-pcent) * dt / 60):.3f} mins")
+			start = time.time()
 
 	except:
 		err_log.write("Fuckup: " + nameID)
 
-# print(soup.find("table", {"id": "tableFamily"}).prettify())
 
-# print(soup.prettify())
-
-'''
-nmID1, name1, nmID2, name2, start, end, end_reason
-nmID2 could be null 
-'''
+err_log.close()
