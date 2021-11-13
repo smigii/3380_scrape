@@ -1,3 +1,6 @@
 data/
 html/
 venv/
+movies.db
+scrape_backups/
+logs/

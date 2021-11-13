@@ -42,7 +42,7 @@ for i in range(size):
 			start = time.time()
 
 	except:
-		err_log.write("Fuckup: " + nameID)
+		err_log.write(nameID + "\n")
 
 
 err_log.close()
