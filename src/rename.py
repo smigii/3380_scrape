@@ -1,8 +1,12 @@
+"""
+Just used once to remove all html extension from scraped files.
+"""
+
 import os
 
 path = "D:\\Code\\projects\\3380scrape\\html\\"
 
-files = os.listdir("html")
+files = os.listdir("../html")
 
 idx = 0
 for file in files:

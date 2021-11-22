@@ -1,19 +1,25 @@
+"""
+Originally only scraped names that had a spouse string in IMDb_names.csv
+Project requirements changed, and so more had to be scraped, so this file was
+created to only scrape what hasn't been scraped.
+"""
+
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import time
 import os
 
-fblacklist = open("logs/err_log", "r")
+fblacklist = open("../logs/err_log", "r")
 blacklist = fblacklist.readlines()
 for i in range(len(blacklist)):
 	blacklist[i] = blacklist[i][:-1]
 blacklist = set(blacklist)
 fblacklist.close()
 
-df = pd.read_csv("data/names2.csv")
+df = pd.read_csv("../data/names2.csv")
 dfnames = set(df["imdb_name_id"].tolist())
-donezo = set(os.listdir("html"))
+donezo = set(os.listdir("../html"))
 
 names = list(dfnames - donezo - blacklist)
 print(f"dfnames: {len(dfnames)}, donezo: {len(donezo)}, blacklist: {len(blacklist)}")
@@ -24,8 +30,8 @@ url_postfix = "/bio"
 start = time.time()
 total_time = 0
 pcent = 0
-err_log = open("logs/err_log", 'a+')
-out_log = open("logs/err_log", 'w+')
+err_log = open("../logs/err_log", 'a+')
+out_log = open("../logs/err_log", 'w+')
 size = len(names)
 inc = 100
 counter = 0

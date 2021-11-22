@@ -200,7 +200,7 @@ if __name__ == "__main__":
 	nm1176985 Dave Bautista
 	"""
 	#for i, imdb_id in enumerate(["nm0000226"]):
-	for i, imdb_id in enumerate(os.listdir("html")):
+	for i, imdb_id in enumerate(os.listdir("../html")):
 
 		if i % 100 == 0:
 			print(i)
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
 		f.close()
 
-	df_spouses.to_csv("out/spouses.csv", index=False)
-	df_children.to_csv("out/children.csv", index=False)
-	df_parents.to_csv("out/parents.csv", index=False)
-	df_relatives.to_csv("out/relatives.csv", index=False)
+	df_spouses.to_csv("../out/spouses.csv", index=False)
+	df_children.to_csv("../out/children.csv", index=False)
+	df_parents.to_csv("../out/parents.csv", index=False)
+	df_relatives.to_csv("../out/relatives.csv", index=False)

@@ -1,11 +1,15 @@
+"""
+This will scrape imdb.com for all people in the names2.csv file.
+It will store the bio table in a file named after the imdb key being requested.
+Pretty sure the time remaining stuff is wrong but i don't really care.
+"""
+
 import requests
 import pandas as pd
 from bs4 import BeautifulSoup
 import time
 
-#num = 71
-
-names = pd.read_csv("data/IMDb_names.csv").dropna(how='all', subset=['spouses_string']).reset_index(drop=True)
+names = pd.read_csv("../data/names2.csv").reset_index(drop=True)
 
 url_prefix = "https://www.imdb.com/name/"
 url_postfix = "/bio"
@@ -29,7 +33,7 @@ for i in range(size):
 		soup = BeautifulSoup(src, 'lxml')
 		fam = soup.find("table", {"id": "tableFamily"}).prettify()
 
-		fout = open("html/"+nameID+".html", 'w+')
+		fout = open("html/"+nameID, 'w+')
 		fout.write(str(fam))
 		fout.close()
 
