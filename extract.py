@@ -135,7 +135,7 @@ def extract_spouse(data):
 		d_from = dates[0].split()
 		d_from = None if len(d_from) != 3 else d_from
 		d_to = dates[1].split() if len(dates) > 1 else None
-		d_to = None if len(d_to) != 3 else d_to
+		d_to = None if d_to is not None and len(d_to) != 3 else d_to
 
 		if d_from is not None:
 			record["s_day"] = d_from[0]
@@ -174,61 +174,68 @@ def extract_spouse(data):
 # -----------------------------------------------------------------------------
 
 
-df_spouses = pd.DataFrame(columns=["imdb_id", "spouse_id", "spouse_name", "s_year", "s_month", "s_day", "e_year", "e_month", "e_day", "e_reason", "n_kids"])
-df_children = pd.DataFrame(columns=["imdb_id", "child_id", "child_name"])
-df_parents = pd.DataFrame(columns=["imdb_id", "parent_id", "parent_name"])
-df_relatives = pd.DataFrame(columns=["imdb_id", "relative_id", "relative_name", "relation"])
+if __name__ == "__main__":
 
-imdb_id = "nm0000226"  # Will Smith
-# imdb_id = "nm0565250"  # Melissa McCarthy, famous relatives
-f = open("html/" + imdb_id)
-soup = BeautifulSoup(f.read(), 'lxml')
+	df_spouses = pd.DataFrame(columns=["imdb_id", "spouse_id", "spouse_name", "s_year", "s_month", "s_day", "e_year", "e_month", "e_day", "e_reason", "n_kids"])
+	df_children = pd.DataFrame(columns=["imdb_id", "child_id", "child_name"])
+	df_parents = pd.DataFrame(columns=["imdb_id", "parent_id", "parent_name"])
+	df_relatives = pd.DataFrame(columns=["imdb_id", "relative_id", "relative_name", "relation"])
 
-rows = soup.find_all("tr")
+	for i, imdb_id in enumerate(os.listdir("html")):
 
-for row in rows:
+		if i % 100 == 0:
+			print(i)
 
-	# Each row will be one of spouse, children, parent or relatives
-	# Each row has first column specifying section, second column
-	# containing <br/> separated list.
+		# imdb_id = "nm0000226"  # Will Smith
+		# imdb_id = "nm0565250"  # Melissa McCarthy, famous relatives
+		f = open("html/" + imdb_id)
+		soup = BeautifulSoup(f.read(), 'lxml')
 
-	columns = row.find_all("td")
+		rows = soup.find_all("tr")
 
-	# First <td> tells us which section it is
-	section = columns[0].text.strip()
+		for row in rows:
 
-	if section == "Spouse":
-		s_names = extract_simple(columns[1])
-		s_data = extract_spouse(columns[1])
-		for i in range(len(s_names)):
-			df_spouses.loc[len(df_spouses)] = [
-				imdb_id, s_names[i]["id"], s_names[i]["name"],
-				s_data[i]["s_year"], s_data[i]["s_month"], s_data[i]["s_day"],
-				s_data[i]["e_year"], s_data[i]["e_month"], s_data[i]["e_day"],
-				s_data[i]["e_reason"], s_data[i]["n_kids"],
-			]
+			# Each row will be one of spouse, children, parent or relatives
+			# Each row has first column specifying section, second column
+			# containing <br/> separated list.
 
-	elif section == "Children":
-		children = extract_simple(columns[1])
-		for c in children:
-			df_children.loc[len(df_children)] = [imdb_id, c["id"], c["name"]]
+			columns = row.find_all("td")
 
-	elif section == "Parents":
-		parents = extract_simple(columns[1])
-		for p in parents:
-			df_parents.loc[len(df_parents)] = [imdb_id, p["id"], p["name"]]
+			# First <td> tells us which section it is
+			section = columns[0].text.strip()
 
-	elif section == "Relatives":
-		relatives = extract_simple(columns[1])
-		for r in relatives:
-			df_relatives.loc[len(df_relatives)] = [imdb_id, r["id"], r["name"], r["paren"]]
+			if section == "Spouse":
+				s_names = extract_simple(columns[1])
+				s_data = extract_spouse(columns[1])
+				for i in range(len(s_names)):
+					df_spouses.loc[len(df_spouses)] = [
+						imdb_id, s_names[i]["id"], s_names[i]["name"],
+						s_data[i]["s_year"], s_data[i]["s_month"], s_data[i]["s_day"],
+						s_data[i]["e_year"], s_data[i]["e_month"], s_data[i]["e_day"],
+						s_data[i]["e_reason"], s_data[i]["n_kids"],
+					]
 
-	else:
-		print("Oh fuck!")
+			elif section == "Children":
+				children = extract_simple(columns[1])
+				for c in children:
+					df_children.loc[len(df_children)] = [imdb_id, c["id"], c["name"]]
 
-f.close()
+			elif section == "Parents":
+				parents = extract_simple(columns[1])
+				for p in parents:
+					df_parents.loc[len(df_parents)] = [imdb_id, p["id"], p["name"]]
 
-df_spouses.to_csv("out/spouses.csv", index=False)
-df_children.to_csv("out/children.csv", index=False)
-df_parents.to_csv("out/parents.csv", index=False)
-df_relatives.to_csv("out/relatives.csv", index=False)
+			elif section == "Relatives":
+				relatives = extract_simple(columns[1])
+				for r in relatives:
+					df_relatives.loc[len(df_relatives)] = [imdb_id, r["id"], r["name"], r["paren"]]
+
+			else:
+				print("Oh fuck!")
+
+		f.close()
+
+	df_spouses.to_csv("out/spouses.csv", index=False)
+	df_children.to_csv("out/children.csv", index=False)
+	df_parents.to_csv("out/parents.csv", index=False)
+	df_relatives.to_csv("out/relatives.csv", index=False)
