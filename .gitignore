@@ -4,3 +4,4 @@ venv/
 movies.db
 scrape_backups/
 logs/
+out/
