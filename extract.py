@@ -42,6 +42,44 @@ def clean_non_anchor_name(filthy_name):
 	return clean_name
 
 
+def extract_name_paren(person):
+	record = {"id": "", "name": "", "paren": ""}
+
+	sub_soup = BeautifulSoup(person, 'html.parser')
+
+	# Check if the person is in anchor tag (in imdb database)
+	if len(sub_soup.find_all("a")) == 0:
+
+		# Non-linked entries are stored [{whitespace}lastname, firstname\n (paren_data){whitespace}]
+		# (paren_data) may or may not be present
+
+		content = person.strip().split('\n')
+
+		paren_data = ""
+		if len(content) > 1:
+			paren_data = content[1].strip().strip('()')
+
+		person_name = clean_non_anchor_name(content[0])
+
+		record["name"] = person_name
+		record["paren"] = paren_data
+
+	else:
+		paren_data = ""
+		relation_split = person.strip().split('</a>')
+		if len(relation_split) > 1:
+			paren_data = relation_split[1].strip().strip('()')
+
+		anchor = sub_soup.find("a", href=True)
+		imdb_id_person = anchor["href"].replace("/name/", '')
+
+		record["id"] = imdb_id_person
+		record["name"] = anchor.text.strip()
+		record["paren"] = paren_data
+
+	return record
+
+
 def extract_simple(data):
 	"""
 	Extracts a list of records containing the names, ids and other information
@@ -57,41 +95,7 @@ def extract_simple(data):
 	people = str(data)[4:-5].split('<br/>')
 
 	for person in people:
-
-		record = {"id": "", "name": "", "paren": ""}
-
-		sub_soup = BeautifulSoup(person, 'html.parser')
-
-		# Check if the person is in anchor tag (in imdb database)
-		if len(sub_soup.find_all("a")) == 0:
-
-			# Non-linked entries are stored [{whitespace}lastname, firstname\n (paren_data){whitespace}]
-			# (paren_data) may or may not be present
-
-			content = person.strip().split('\n')
-
-			paren_data = ""
-			if len(content) > 1:
-				paren_data = content[1].strip().strip('()')
-
-			person_name = clean_non_anchor_name(content[0])
-
-			record["name"] = person_name
-			record["paren"] = paren_data
-
-		else:
-			paren_data = ""
-			relation_split = person.strip().split('</a>')
-			if len(relation_split) > 1:
-				paren_data = relation_split[1].strip().strip('()')
-
-			anchor = sub_soup.find("a", href=True)
-			imdb_id_person = anchor["href"].replace("/name/", '')
-
-			record["id"] = imdb_id_person
-			record["name"] = anchor.text.strip()
-			record["paren"] = paren_data
-
+		record = extract_name_paren(person)
 		out.append(record)
 
 	return out
@@ -100,11 +104,10 @@ def extract_simple(data):
 def extract_spouse(data):
 	"""
 	Extracts a list of records containing marriage-specific data
-	from a <td> enclosed section of data. Does not extract
-	name/id data, as that can be done with simple_extract.
+	from a <td> enclosed section of data.
 
 	:param data: td wrapped soup containing section data
-	:return: List of dictionaries with keys {s_year, s_month, s_day,
+	:return: List of dictionaries with keys {id, name, s_year, s_month, s_day,
 		e_year, e_month, e_day, e_reason, n_kids}
 	"""
 	out = []
@@ -115,21 +118,24 @@ def extract_spouse(data):
 	for spouse in spouses:
 
 		record = {
+			"id": "", "name": "",
 			"s_year": "", "s_month": "", "s_day": "",
-			"e_year":"", "e_month": "", "e_day": "",
+			"e_year": "", "e_month": "", "e_day": "",
 			"e_reason": "", "n_kids": ""
 		}
 
 		# [name, (date - date), (end reason), (num_children)]
 		content = str(spouse).split('(')
 
-		# We do not care about name, that should be handled by
-		# extract simple
-		content = content[1:]
+		# Get name data
+		name_data = extract_name_paren(content[0])
+		record["id"] = name_data["id"]
+		record["name"] = name_data["name"]
 
 		# Next field should always be dates.
 		# Remove everything after closing paren, split
 		# into 2 dates
+		content = content[1:]
 		dates = content[0].split(')')[0]
 		dates = BeautifulSoup(dates, 'html.parser').text.split('-')
 		d_from = dates[0].split()
@@ -176,18 +182,22 @@ def extract_spouse(data):
 
 if __name__ == "__main__":
 
-	df_spouses = pd.DataFrame(columns=["imdb_id", "spouse_id", "spouse_name", "s_year", "s_month", "s_day", "e_year", "e_month", "e_day", "e_reason", "n_kids"])
-	df_children = pd.DataFrame(columns=["imdb_id", "child_id", "child_name"])
-	df_parents = pd.DataFrame(columns=["imdb_id", "parent_id", "parent_name"])
-	df_relatives = pd.DataFrame(columns=["imdb_id", "relative_id", "relative_name", "relation"])
+	df_spouses = pd.DataFrame(columns=["imdb_name_id", "spouse_id", "spouse_name", "s_year", "s_month", "s_day", "e_year", "e_month", "e_day", "e_reason", "n_kids"])
+	df_children = pd.DataFrame(columns=["imdb_name_id", "child_id", "child_name"])
+	df_parents = pd.DataFrame(columns=["imdb_name_id", "parent_id", "parent_name"])
+	df_relatives = pd.DataFrame(columns=["imdb_name_id", "relative_id", "relative_name", "relation"])
 
+	"""
+	nm0000226 Will Smith
+	nm0565250 Melissa McCarthy
+	nm1176985 Dave Bautista
+	"""
+	#for i, imdb_id in enumerate(["nm0000226"]):
 	for i, imdb_id in enumerate(os.listdir("html")):
 
 		if i % 100 == 0:
 			print(i)
 
-		# imdb_id = "nm0000226"  # Will Smith
-		# imdb_id = "nm0565250"  # Melissa McCarthy, famous relatives
 		f = open("html/" + imdb_id)
 		soup = BeautifulSoup(f.read(), 'lxml')
 
@@ -205,14 +215,13 @@ if __name__ == "__main__":
 			section = columns[0].text.strip()
 
 			if section == "Spouse":
-				s_names = extract_simple(columns[1])
-				s_data = extract_spouse(columns[1])
-				for i in range(len(s_names)):
+				spouses = extract_spouse(columns[1])
+				for s in spouses:
 					df_spouses.loc[len(df_spouses)] = [
-						imdb_id, s_names[i]["id"], s_names[i]["name"],
-						s_data[i]["s_year"], s_data[i]["s_month"], s_data[i]["s_day"],
-						s_data[i]["e_year"], s_data[i]["e_month"], s_data[i]["e_day"],
-						s_data[i]["e_reason"], s_data[i]["n_kids"],
+						imdb_id, s["id"], s["name"],
+						s["s_year"], s["s_month"], s["s_day"],
+						s["e_year"], s["e_month"], s["e_day"],
+						s["e_reason"], s["n_kids"],
 					]
 
 			elif section == "Children":

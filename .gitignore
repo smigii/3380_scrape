@@ -1,7 +1,7 @@
 data/
 html/
 venv/
-movies.db
+movies.db*
 scrape_backups/
 logs/
 out/
