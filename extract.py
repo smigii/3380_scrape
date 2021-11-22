@@ -8,74 +8,76 @@ from bs4 import BeautifulSoup
 # -----------------------------------------------------------------------------
 
 
-def extract_children_parents(data, df, key_id):
+def clean_non_anchor_name(filthy_name):
 	"""
-	:param data: <td> wrapped soup containing section data
-	:param df: DataFrame to update
-	:param key_id: Current imdb id being processed
+	Takes in a white-space infested, backwards name string (WITHOUT anchor tags)
+	and returns the cleaned string.
+
+	' /n  /t   LastName, FirstName  /n' -> 'FirstName LastName'
+
+	:param filthy_name: Gross name string
+	:return: Cleaned name string
 	"""
+	clean_name = filthy_name.split(',')
+	clean_name = [name.strip() for name in clean_name]
+	clean_name.reverse()
+	clean_name = ' '.join(clean_name)
+	return clean_name
+
+
+def extract_simple(data):
+	"""
+	Extracts a list of records containing the names, ids and other information
+	from a <td> enclosed section of data
+
+	:param data: td wrapped soup containing section data
+	:return: List of dictionaries with keys {name, id, paren}
+	"""
+
+	out = []
 
 	# [4:-5] removes the <td> and </td> tags
-	list_family = str(data)[4:-5].split('<br/>')
+	people = str(data)[4:-5].split('<br/>')
 
-	for person in list_family:
+	for person in people:
 
-		sub_soup = BeautifulSoup(person.strip(), 'html.parser')
+		record = {"id": "", "name": "", "paren": ""}
+
+		sub_soup = BeautifulSoup(person, 'html.parser')
 
 		# Check if the person is in anchor tag (in imdb database)
 		if len(sub_soup.find_all("a")) == 0:
-			# Non-linked entries are stored [lastname, firstname]
-			person_name = person.split(',')
-			person_name = [name.strip() for name in person_name]
-			person_name.reverse()
-			person_name = ' '.join(person_name)
-			df.loc[len(df)] = [key_id, "", person_name]
 
-		else:
-			imdb_id_person = sub_soup.find("a", href=True)["href"].replace("/name/", '')
-			df.loc[len(df)] = [key_id, imdb_id_person, sub_soup.text.strip()]
+			# Non-linked entries are stored [{whitespace}lastname, firstname\n (paren_data){whitespace}]
+			# (paren_data) may or may not be present
 
+			content = person.strip().split('\n')
 
-def extract_relatives(data, df, key_id):
-	"""
-	:param data: <td> wrapped soup containing section data
-	:param df: DataFrame to update
-	:param key_id: Current imdb id being processed
-	"""
-
-	# [4:-5] removes the <td> and </td> tags
-	relatives = str(data)[4:-5].split('<br/>')
-
-	for relative in relatives:
-
-		sub_soup = BeautifulSoup(relative, 'html.parser')
-
-		# Check if the person is in anchor tag (in imdb database)
-		if len(sub_soup.find_all("a")) == 0:
-			# Non-linked entries are stored [lastname, firstname\n (relation)]
-			content = relative.strip().split('\n')
-
-			relation = ""
+			paren_data = ""
 			if len(content) > 1:
-				relation = content[1].strip().strip('()')
+				paren_data = content[1].strip().strip('()')
 
-			person_name = content[0].split(',')
-			person_name = [name.strip() for name in person_name]
-			person_name.reverse()
-			person_name = ' '.join(person_name)
+			person_name = clean_non_anchor_name(content[0])
 
-			df.loc[len(df)] = [key_id, "", person_name, relation]
+			record["name"] = person_name
+			record["paren"] = paren_data
 
 		else:
-			relation = ""
-			relation_split = relative.strip().split('</a>')
+			paren_data = ""
+			relation_split = person.strip().split('</a>')
 			if len(relation_split) > 1:
-				relation = relation_split[1].strip().strip('()')
+				paren_data = relation_split[1].strip().strip('()')
 
 			anchor = sub_soup.find("a", href=True)
 			imdb_id_person = anchor["href"].replace("/name/", '')
 
-			df.loc[len(df)] = [key_id, imdb_id_person, anchor.text.strip(), relation]
+			record["id"] = imdb_id_person
+			record["name"] = anchor.text.strip()
+			record["paren"] = paren_data
+
+		out.append(record)
+
+	return out
 
 
 # -----------------------------------------------------------------------------
@@ -114,13 +116,19 @@ for row in rows:
 		print("Spouse!")
 
 	elif section == "Children":
-		extract_children_parents(columns[1], df_children, imdb_id)
+		children = extract_simple(columns[1])
+		for c in children:
+			df_children.loc[len(df_children)] = [imdb_id, c["id"], c["name"]]
 
 	elif section == "Parents":
-		extract_children_parents(columns[1], df_parents, imdb_id)
+		parents = extract_simple(columns[1])
+		for p in parents:
+			df_parents.loc[len(df_parents)] = [imdb_id, p["id"], p["name"]]
 
 	elif section == "Relatives":
-		extract_relatives(columns[1], df_relatives, imdb_id)
+		relatives = extract_simple(columns[1])
+		for r in relatives:
+			df_relatives.loc[len(df_relatives)] = [imdb_id, r["id"], r["name"], r["paren"]]
 
 	else:
 		print("Oh fuck!")
