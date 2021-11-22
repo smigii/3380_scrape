@@ -43,8 +43,15 @@ def clean_non_anchor_name(filthy_name):
 
 
 def extract_name_paren(person):
-	record = {"id": "", "name": "", "paren": ""}
+	"""
+	Extracts a single record containing the name, id and other information
+	from a <td> enclosed section of data
 
+	:param data: td wrapped soup containing section data
+	:return: List of dictionaries with keys {name, id, paren}
+	"""
+
+	record = {"id": "", "name": "", "paren": ""}
 	sub_soup = BeautifulSoup(person, 'html.parser')
 
 	# Check if the person is in anchor tag (in imdb database)
