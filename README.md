@@ -4,20 +4,21 @@ This dataset extends the [IMDb Movies Dataset](https://www.kaggle.com/stefanoleo
 by adding the relationships between people in the names2.csv file.
 This is a subset of IMDb_names.csv, where each name satisfying all of
 
-1. name worked on a movie made after 1950
+1. name worked on a movie made during or after 1950
 2. name worked on a movie with either a non-null worldwide or non-null domestic box office
 3. name worked on a movie that has english as a listed language
 
-is in names2.csv (roughly 72k records).
+is in names2.csv, which contains roughly 72k names. Of those 72k, 49k had a bio section on
+IMDb, and so this dataset contains information on ***49735*** people.
 The restriction was needed to cut down on scraping time.
 
 ## Files
 
 |File|Description|
 |----|-----------|
-|data.zip|Base data from the kaggle dataset.|
+|data.zip|Base data from the kaggle dataset and names2.csv.|
 |html.zip|Contains 72k files, named by IMDb name id. Contains the html *bio* table of each artist.|
-|relationships.zip|Generated CSV files|
+|relationships.zip|4 relationship CSV files, spouses, relatives, children and parents|
 
 ## Output CSV Headers
 
